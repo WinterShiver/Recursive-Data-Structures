@@ -248,4 +248,4 @@ prop_WithList tree = (tree == (list2bt . bt2list) tree)
 
 # 总结
 
-[Flow Chart](./Figs/WithList.png)
+![Flow Chart](./Figs/WithList.png)
