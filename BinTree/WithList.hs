@@ -1,8 +1,18 @@
-module BinTree.WithList (bt2list, list2bt) where
+module BinTree.WithList where
+-- module BinTree.WithList (isJust, isNothing, bt2list, list2bt) where
 
 import BinTree
 import BinTree.Complete
 import BinTree.Traversal
+
+-- Basics
+
+isJust :: Maybe a -> Bool
+isJust Nothing = False
+isJust _ = True
+
+isNothing :: Maybe a -> Bool
+isNothing = not . isJust
 
 -- Part 1. From BinTree to List of Maybe things that
 {-
@@ -61,8 +71,6 @@ pbtMaybe2list :: Pbt (Maybe a) -> [Maybe a]
 pbtMaybe2list = removeTailNothings . cbt2list where
     removeTailNothings = reverse . removeHeadNothings . reverse
     removeHeadNothings = dropWhile isNothing
-    isNothing Nothing = True
-    isNothing (Just _) = False
 
 -- The above 2 steps are intergrated into bt2list
 
