@@ -7,11 +7,11 @@ Haskell递归数据结构：二叉树01a-二叉树的基础定义
 ```haskell
 data BinTree a = Empty | Node (BinTree a) a (BinTree a)
 ```
-其中`Empty`是不包含任何结点的树，结点个数为0.下文将其记为“空树”。注意区分空树和“只有一个根节点的树”。
+其中`Empty`是不包含任何结点的树，结点个数为0，下文将其记为“空树”。注意区分空树和“只有一个根节点的树”，后者的结点个数为1.
 
 # 二叉树所处的类型类
 
-二叉树具有递归的、能够容纳值的结构特征，属于`Eq, Functor, Foldable, Traversable`都很自然。
+二叉树具有递归的、能够容纳值的结构特征，很自然地属于`Eq, Functor, Foldable, Traversable`类型类。
 
 ```haskell
 instance Eq a => Eq (BinTree a) where
@@ -39,7 +39,7 @@ instance Traversable BinTree where
 
 # QuickCheck
 
-为了给二叉树这个类型使用QuickCheck，需要额外做一些定义，使系统能随机生成深度不同的二叉树：
+为了对二叉树进行QuickCheck，需要额外做一些定义，使系统能随机生成深度不同的二叉树：
 
 ```haskell
 -- sizedArbTestBinTree: generate random bintrees with different depth

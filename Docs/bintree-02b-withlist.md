@@ -1,6 +1,6 @@
 Haskell递归数据结构：二叉树02b-二叉树和列表之间的转换（下）
 
-在之前三篇文章的铺垫下，终于到重要部分了！本文讲了在递归定义的二叉树概念上，借助完全二叉树和完美二叉树的概念，进行二叉树和层序Maybe列表的相互转换。
+在之前三篇文章的铺垫下，终于到重要部分了！本文的内容是，在递归定义的二叉树概念上，借助完全二叉树和完美二叉树的概念，进行二叉树和保结构的层序列表的相互转换。
 
 # 前言
 
@@ -36,6 +36,14 @@ bt:
 
 # 二叉树转为列表
 
+分为两步：
+- 第一步，将原始二叉树转化为`Pbt (Maybe a)`，将二叉树填充成等深的完美二叉树，空缺位置用Nothing填充，非空缺位置也套Just.
+- 第二步，利用完全二叉树通过层序遍历不丢失结构信息的性质，将完美二叉树层序遍历成列表，并去掉尾部的无用信息。
+
+参考这张图的左半边。
+
+![Flow Chart](./Figs/WithList.png)
+
 ## 二叉树填充为完美二叉树
 
 即做如下的过程：
@@ -60,9 +68,7 @@ Just 6 Nothing Nothing Just 15
 N   J4  N    N  N    N  N     N
 ```
 
-把一个元素为`a`的bt，转化为一个深度相同的pbt；但pbt的元素为`Maybe a`，原来树中无元素的地方用值为Nothing的结点填充。
-
-此处采用的方式是，直接构造一棵深度相同的pbt，然后在递归中对每个位置做对应，逐个位置地确定元素值。
+把一个`BinTree a`，转化为一个深度相同、结构对应的`Pbt (Maybe a)`：原来树中无元素的地方用值为Nothing的结点填充，有元素值k的地方用Just k代替。算法是，在构造`Pbt (Maybe a)`时，通过尾递归传递深度参数，保证函数结果和输入的深度相同；通过递归对每个位置做对应，逐个位置确定元素值。
 
 ```haskell
 bt2pbtMaybe :: BinTree a -> Pbt (Maybe a)
@@ -73,11 +79,13 @@ bt2pbtMaybe tree = fill (tree, depth tree) where
     fill (Node l k r, n) = Node (fill (l, n-1)) (Just k) (fill (r, n-1))
 ```
 
-在递归中将深度作为状态传递，保证在空树的情况下，也能创建出结构完整的pbt（里面结点的值都是Nothing）。
+在递归中将深度作为状态传递，保证在空树的情况下，也能创建出结构完整的pbt（获得的子树是一棵全是Nothing的pbt）。
 
 ## 完美二叉树转化为层序列表
 
-层序遍历可以将cbt转化为列表，同时没有结构上的信息丢失。我们（马后炮地）用QuickCheck验证这件事：
+**完全二叉树转化为层序列表**
+
+层序遍历将二叉树转化为列表，如果这棵树是complete的，就没有结构上的信息丢失。我们（马后炮地）用QuickCheck验证这件事：
 
 ```haskell
 prop_complete_level_traversal :: BinTree Integer -> Bool
@@ -92,14 +100,19 @@ prop_complete_level_traversal tree =
 +++ OK, passed 100 tests.
 ```
 
-所以，可以重新封装层序遍历函数为`cbt2list`，这个函数将一个cbt转化成其元素层序遍历的列表。我们使用`cbt2list`的目的是把不丢失结构信息的性质提炼出来：与使用`levelOrderTraversal`不同，在程序中使用`cbt2list`的目的是说明1.输入的值是cbt；2.输出中结构信息没有丢。
+所以，可以重新封装层序遍历函数为`cbt2list`，这个函数将一个`Cbt a`转化成其元素层序遍历的列表`[a]`。
 
 ```haskell
 cbt2list :: Cbt a -> [a]
 cbt2list = levelOrderTraversal
 ```
 
-因为上一部得到的`Maybe a`的pbt也是一个cbt，所以可以把这个pbt转化为列表，同时不丢失信息：
+我们使用`cbt2list`的目的是把不丢失结构信息的性质提炼出来：
+在表面上看，`cbt2list`是`levelOrderTraversal`的一个特化。但实际要表达的意思是，我们用`cbt2list`将一个`Cbt a`转化成`[a]`，`cbt2list`保证在这个过程中不丢失二叉树的结构信息。`levelOrderTraversal`仅是`cbt2list`的实现方式而已。
+
+**完美二叉树转化为层序列表**
+
+因为上一部得到的`Pbt (Maybe a)`也满足complete的性质，所以用`pbtMaybe2list :: Pbt (Maybe a) -> [Maybe a]`把上一步得到的pbt转化为列表，同时不丢失信息：
 
 ```haskell
 pbtMaybe2list :: Pbt (Maybe a) -> [Maybe a]
@@ -108,9 +121,7 @@ pbtMaybe2list = removeTailNothings . cbt2list where
     removeHeadNothings = dropWhile isNothing
 ```
 
-这里的`pbtMaybe2list`做了两件事：
-- 第一件事是对`cbt2list`的特化，说明上一个步骤获得的pbt可以转成列表。
-- 第二件事是修缮`cbt2list`得到的列表：上面的例子中，bt转为Maybe值的pbt后，后面多了很多Nothing，导致直接`cbt2list`出来的列表后面有很多Nothing，这些Nothing需要接一个步骤`removeTailNothings`去掉。
+这里的`pbtMaybe2list`不仅是对`cbt2list`的特化，特殊指明上一个步骤获得的pbt转成列表的步骤；还对`cbt2list`得到的列表进行修缮。上面的例子中，`BinTree a`转为`Pbt (Maybe a)`后，后面多了很多Nothing，这些Nothing在`Pbt (Maybe a)`中是补全底层右侧位置用的。这些多余的Nothing导致直接`cbt2list`出来的列表后面有很多Nothing，这些Nothing需要接一个步骤`removeTailNothings`去掉。
 
 ## 完成二叉树转列表
 
@@ -150,13 +161,17 @@ prop_perfect tree =
 
 这两个测试都可以通过，证明了我们的猜想。
 
-（当然还有更简单、更有效、或更好的方法验证complete和perfect定义的正确性。这里只是举个例。）
+（当然还有更简单、更有效、或更好的方法验证complete和perfect定义的正确性。这里只是QuickCheck的使用举例。）
 
 # 列表转为二叉树
 
 这一部分，我的实现比较麻烦：
-- 首先设计一个保complete的插入（insert）函数，然后通过逐个插入`Maybe a`类型的元素，获得`Cbt (Maybe a)`的cbt. 这样做的好处是保留了结构信息。
-- `a`替换掉`Maybe a`，`Empty`替换掉`Nothing`，还原原来的二叉树。
+- 第一步，设计一个保complete的插入（insert）函数，然后通过对空树逐个插入`Maybe a`类型的元素，获得`Cbt (Maybe a)`. 这样做的好处是保留了结构信息。
+- 第二步，保结构地对二叉树元素做替换，`a`替换掉`Maybe a`，空树替换掉`Nothing`，还原原来的二叉树。
+
+参考这张图的右半边。
+
+![Flow Chart](./Figs/WithList.png)
 
 ## 列表转为完全二叉树
 
@@ -174,7 +189,11 @@ insertCbt m (Node l k r)
 
 这个函数对应我们上一篇文章介绍的插入过程：
 
-> 首先是一棵perfect，此时左右子树是深度相同的perfect；在插入少量结点时，左侧变成深一层的complete，右子树依然是perfect；在插入一半时，左侧是深一层的perfect，右侧是perfect；继续插入，左右深度重新相同，左侧perfect右侧complete；最后，左右都变成深度相同的perfect，此时继续往左侧插。
+> 1. 首先是一棵perfect，此时左右子树是深度相同的perfect，下一个结点插入底层的最左侧；
+> 2. 在底层从左到右插入结点，插入结点个数少于一半时，左侧变成深一层的complete，右子树依然是perfect；
+> 3. 在插入一半时，左侧底层插满深一层的perfect，右侧是perfect；
+> 4. 继续插入，左右深度重新相同，左侧perfect右侧complete；
+> 5. 底层完全插满，左右都变成深度相同的perfect，下一个结点插入下一层的最左侧。
 
 左侧空或左侧未满，插入左侧；左侧满右侧空或未满，插入右侧；两侧都满，判断是左插完右没插，还是都已插完进入下一层。
 
@@ -244,8 +263,4 @@ prop_WithList tree = (tree == (list2bt . bt2list) tree)
 
 （这里的验证方法并不严格，只是举例。）
 
-测试通过，搞定！
-
-# 总结
-
-![Flow Chart](./Figs/WithList.png)
+所以，这篇文章最大的用处似乎是告诉我们存取模型的重要性……
