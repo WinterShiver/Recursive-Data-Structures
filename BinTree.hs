@@ -1,3 +1,5 @@
+{-# LANGUAGE InstanceSigs #-}
+
 module BinTree where
 
 import Control.Applicative
@@ -50,7 +52,7 @@ goodShow (Node l k r) =
 -- Attributes (Typeclasses)
 
 instance Eq a => Eq (BinTree a) where
-    -- (==) :: Eq a => BinTree a -> BinTree a -> Bool
+    (==) :: Eq a => BinTree a -> BinTree a -> Bool
     (==) Empty Empty = True
     (==) Empty (Node l k r) = False
     (==) (Node l k r) Empty = False
@@ -59,19 +61,19 @@ instance Eq a => Eq (BinTree a) where
 -- FAM
 
 instance Functor BinTree where
-    -- fmap :: (a -> b) -> BinTree a -> BinTree b
+    fmap :: (a -> b) -> BinTree a -> BinTree b
     fmap f Empty = Empty
     fmap f (Node l k r) = Node (fmap f l) (f k) (fmap f r)
 
 -- Structure
 
 instance Foldable BinTree where
-    -- foldMap :: Monoid m => (a -> m) -> BinTree a -> m
+    foldMap :: Monoid m => (a -> m) -> BinTree a -> m
     foldMap f Empty = mempty
     foldMap f (Node l k r) = foldMap f l `mappend` f k `mappend` foldMap f r
 
 instance Traversable BinTree where
-    -- traverse :: (Traversable t, Applicative f) => (a -> f b) -> BinTree a -> f (BinTree b)
+    traverse :: (Traversable t, Applicative f) => (a -> f b) -> BinTree a -> f (BinTree b)
     traverse f Empty = pure Empty
     traverse f (Node l k r) = Node <$> traverse f l <*> f k <*> traverse f r
 
@@ -79,10 +81,7 @@ instance Traversable BinTree where
 
 -- sizedArbTestBinTree: generate random bintrees with different depth
 sizedArbTestBinTree :: Arbitrary a => Int -> Gen (BinTree a)
-sizedArbTestBinTree 0 = leaf <$> arbitrary
--- sizedArbTestBinTree 0 = do
---     k <- arbitrary
---     return (leaf k)
+sizedArbTestBinTree 0 = leaf <$> arbitrary -- == do { k <- arbitrary; return (leaf k); }
 sizedArbTestBinTree n = do
     k <- arbitrary
     lDepth <- choose (0, n-1)
